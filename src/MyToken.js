@@ -6,7 +6,7 @@ const MyToken = () => {
     const [web3, setWeb3] = useState(null);
     const [accounts, setAccounts] = useState([]);
     const [contract, setContract] = useState(null);
-    const [ethBalance, setEthBalance] = useState(null); // 存储 ETH 余额
+    const [ethBalance, setEthBalance] = useState("加载中...");
     const [balance, setBalance] = useState("加载中...");
     const [totalSupply, setTotalSupply] = useState("加载中...");
     const [transferTo, setTransferTo] = useState("");
@@ -14,9 +14,7 @@ const MyToken = () => {
     const [approveSpender, setApproveSpender] = useState("");
     const [approveAmount, setApproveAmount] = useState("");
     const [spender, setSpender] = useState("");
-    const [allowance, setAllowance] = useState(0);
-    const [decimals, setDecimals] = useState(null); // 添加 decimals 状态`
-
+    const [allowance, setAllowance] = useState("加载中...");
 
     useEffect(() => {
         const init = async () => {
@@ -33,16 +31,15 @@ const MyToken = () => {
                         deployedNetwork && deployedNetwork.address
                     );
                     setContract(instance);
-                    const balance = await instance.methods.balanceOf(accounts[0]).call();
-                    setBalance(web3Instance.utils.fromWei(balance, "ether"));
-                    // 获取并设置 ETH 余额
+
                     const ethBalance = await web3Instance.eth.getBalance(accounts[0]);
                     setEthBalance(web3Instance.utils.fromWei(ethBalance, "ether"));
+
+                    const balance = await instance.methods.balanceOf(accounts[0]).call();
+                    setBalance(balance);
+
                     const totalSupply = await instance.methods.totalSupply().call();
-                    setTotalSupply(web3Instance.utils.fromWei(totalSupply, "ether"));
-                    // 获取 decimals 值
-                    const decimals = await instance.methods.decimals().call();
-                    setDecimals(decimals);
+                    setTotalSupply(totalSupply);
                 } else {
                     console.error("请安装 MetaMask！");
                 }
@@ -56,9 +53,14 @@ const MyToken = () => {
 
     const handleTransfer = async () => {
         try {
-            await contract.methods.transfer(transferTo, web3.utils.toWei(transferAmount, "ether")).send({ from: accounts[0] });
+            if (!contract || !accounts[0]) {
+                console.error("智能合约或账户未初始化");
+                return;
+            }
+
+            await contract.methods.transfer(transferTo, transferAmount).send({ from: accounts[0] });
             const updatedBalance = await contract.methods.balanceOf(accounts[0]).call();
-            setBalance(web3.utils.fromWei(updatedBalance, "ether"));
+            setBalance(updatedBalance);
         } catch (error) {
             console.error("转账出错:", error);
         }
@@ -66,7 +68,12 @@ const MyToken = () => {
 
     const handleApprove = async () => {
         try {
-            await contract.methods.approve(approveSpender, web3.utils.toWei(approveAmount, "ether")).send({ from: accounts[0] });
+            if (!contract || !accounts[0]) {
+                console.error("智能合约或账户未初始化");
+                return;
+            }
+
+            await contract.methods.approve(approveSpender, approveAmount).send({ from: accounts[0] });
         } catch (error) {
             console.error("授权出错:", error);
         }
@@ -74,29 +81,41 @@ const MyToken = () => {
 
     const handleCheckAllowance = async () => {
         try {
+            if (!contract || !accounts[0]) {
+                console.error("智能合约或账户未初始化");
+                return;
+            }
+
             const allowance = await contract.methods.allowance(accounts[0], spender).call();
-            setAllowance(web3.utils.fromWei(allowance, "ether"));
+            setAllowance(allowance);
         } catch (error) {
             console.error("查询授权额度出错:", error);
         }
     };
 
-    const formatBalance = () => {
-        if (!web3 || balance === null) {
-            return "加载中...";
-        }
-        const balanceInUnits = balance * 10 ** 18; // 固定使用 18 作为 decimals
-        return `${balanceInUnits.toFixed(18)} MTK`;
-    };
+    const handleReceiveAirdrop = async () => {
+        try {
+            if (!contract || !accounts[0]) {
+                console.error("智能合约或账户未初始化");
+                return;
+            }
 
+            const receipt = await contract.methods.airdrop().send({ from: accounts[0] });
+            console.log("接收空投成功:", receipt);
+            const updatedBalance = await contract.methods.balanceOf(accounts[0]).call();
+            setBalance(updatedBalance);
+        } catch (error) {
+            console.error("接收空投出错:", error);
+        }
+    };
 
     return (
         <div>
             <h2>我的代币 DApp</h2>
             <p>当前账户地址：{accounts.length > 0 ? accounts[0] : "加载中..."}</p>
-            <p>ETH余额：{web3 && ethBalance !== null ? `${ethBalance} ETH` : "加载中..."}</p>
-            <p>代币余额：{formatBalance()}</p>
-            {/*<p>总供应量：{totalSupply === "加载中..." ? totalSupply : `${totalSupply} MTK`}</p>*/}
+            <p>ETH余额：{ethBalance !== "加载中..." ? `${ethBalance} ETH` : "加载中..."}</p>
+            <p>余额：{balance !== "加载中..." ? `${balance} MTK` : "加载中..."}</p>
+            <p>总供应量：{totalSupply !== "加载中..." ? `${totalSupply} MTK` : "加载中..."}</p>
 
             <h3>转账代币</h3>
             <input
@@ -136,7 +155,10 @@ const MyToken = () => {
                 placeholder="授权者地址"
             />
             <button onClick={handleCheckAllowance}>查询授权额度</button>
-            <p>授权额度：{allowance} MTK</p>
+            <p>授权额度：{allowance !== "加载中..." ? `${allowance} MTK` : "加载中..."}</p>
+
+            <h3>接收空投</h3>
+            <button onClick={handleReceiveAirdrop}>接收空投</button>
         </div>
     );
 };
