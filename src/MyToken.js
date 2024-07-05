@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Web3 from "web3";
 import MyTokenContract from "./contracts/MyToken.json";
+import { Toast, Input, Button, Space, Card } from "antd-mobile";
+import './App.css'; // 引入样式文件
 
 const MyToken = () => {
     const [web3, setWeb3] = useState(null);
@@ -41,10 +43,16 @@ const MyToken = () => {
                     const totalSupply = await instance.methods.totalSupply().call();
                     setTotalSupply(totalSupply);
                 } else {
-                    console.error("请安装 MetaMask！");
+                    Toast.show({
+                        icon: 'fail',
+                        content: '请安装 MetaMask！'
+                    });
                 }
             } catch (error) {
-                console.error("初始化出错:", error);
+                Toast.show({
+                    icon: 'fail',
+                    content: `初始化出错`
+                });
             }
         };
 
@@ -54,111 +62,122 @@ const MyToken = () => {
     const handleTransfer = async () => {
         try {
             if (!contract || !accounts[0]) {
-                console.error("智能合约或账户未初始化");
+                Toast.show({
+                    icon: 'fail',
+                    content: '智能合约或账户未初始化'
+                });
                 return;
             }
 
             await contract.methods.transfer(transferTo, transferAmount).send({ from: accounts[0] });
             const updatedBalance = await contract.methods.balanceOf(accounts[0]).call();
             setBalance(updatedBalance);
+            Toast.show({
+                icon: 'success',
+                content: '转账成功'
+            });
         } catch (error) {
-            console.error("转账出错:", error);
+            Toast.show({
+                icon: 'fail',
+                content: `转账出错`
+            });
         }
     };
 
     const handleApprove = async () => {
         try {
             if (!contract || !accounts[0]) {
-                console.error("智能合约或账户未初始化");
+                Toast.show({
+                    icon: 'fail',
+                    content: '智能合约或账户未初始化'
+                });
                 return;
             }
 
             await contract.methods.approve(approveSpender, approveAmount).send({ from: accounts[0] });
+            Toast.show({
+                icon: 'success',
+                content: '授权成功'
+            });
         } catch (error) {
-            console.error("授权出错:", error);
+            Toast.show({
+                icon: 'fail',
+                content: `授权出错`
+            });
         }
     };
 
     const handleCheckAllowance = async () => {
         try {
             if (!contract || !accounts[0]) {
-                console.error("智能合约或账户未初始化");
+                Toast.show({
+                    icon: 'fail',
+                    content: '智能合约或账户未初始化'
+                });
                 return;
             }
 
             const allowance = await contract.methods.allowance(accounts[0], spender).call();
             setAllowance(allowance);
         } catch (error) {
-            console.error("查询授权额度出错:", error);
-        }
-    };
-
-    const handleReceiveAirdrop = async () => {
-        try {
-            if (!contract || !accounts[0]) {
-                console.error("智能合约或账户未初始化");
-                return;
-            }
-
-            const receipt = await contract.methods.airdrop().send({ from: accounts[0] });
-            console.log("接收空投成功:", receipt);
-            const updatedBalance = await contract.methods.balanceOf(accounts[0]).call();
-            setBalance(updatedBalance);
-        } catch (error) {
-            console.error("接收空投出错:", error);
+            Toast.show({
+                icon: 'fail',
+                content: `查询授权额度出错`
+            });
         }
     };
 
     return (
-        <div>
-            <h2>我的代币 DApp</h2>
-            <p>当前账户地址：{accounts.length > 0 ? accounts[0] : "加载中..."}</p>
-            <p>ETH余额：{ethBalance !== "加载中..." ? `${ethBalance} ETH` : "加载中..."}</p>
-            <p>余额：{balance !== "加载中..." ? `${balance} MTK` : "加载中..."}</p>
-            <p>总供应量：{totalSupply !== "加载中..." ? `${totalSupply} MTK` : "加载中..."}</p>
+        <div className="container">
+            <h2 className="title">我的代币 DApp</h2>
+            <Card className="card">
+                <p>当前账户地址：{accounts.length > 0 ? accounts[0] : "加载中..."}</p>
+                <p>ETH余额：{ethBalance !== "加载中..." ? `${ethBalance} ETH` : "加载中..."}</p>
+                <p>余额：{balance !== "加载中..." ? `${balance} MTK` : "加载中..."}</p>
+            </Card>
 
-            <h3>转账代币</h3>
-            <input
-                type="text"
-                value={transferTo}
-                onChange={(e) => setTransferTo(e.target.value)}
-                placeholder="接收者地址"
-            />
-            <input
-                type="number"
-                value={transferAmount}
-                onChange={(e) => setTransferAmount(e.target.value)}
-                placeholder="数量"
-            />
-            <button onClick={handleTransfer}>转账</button>
+            <h3 className="section-title">转账代币</h3>
+            <Space direction="vertical" style={{ width: '100%' }}>
+                <Input
+                    value={transferTo}
+                    onChange={(e) => setTransferTo(e)}
+                    placeholder="接收者地址"
+                />
+                <Input
+                    value={transferAmount}
+                    onChange={(e) => setTransferAmount(e)}
+                    placeholder="数量"
+                    type="number"
+                />
+                <Button onClick={handleTransfer} block>转账</Button>
+            </Space>
 
-            <h3>授权代币</h3>
-            <input
-                type="text"
-                value={approveSpender}
-                onChange={(e) => setApproveSpender(e.target.value)}
-                placeholder="授权者地址"
-            />
-            <input
-                type="number"
-                value={approveAmount}
-                onChange={(e) => setApproveAmount(e.target.value)}
-                placeholder="数量"
-            />
-            <button onClick={handleApprove}>授权</button>
+            <h3 className="section-title">授权代币</h3>
+            <Space direction="vertical" style={{ width: '100%' }}>
+                <Input
+                    value={approveSpender}
+                    onChange={(e) => setApproveSpender(e)}
+                    placeholder="授权者地址"
+                />
+                <Input
+                    value={approveAmount}
+                    onChange={(e) => setApproveAmount(e)}
+                    placeholder="数量"
+                    type="number"
+                />
+                <Button onClick={handleApprove} block>授权</Button>
+            </Space>
 
-            <h3>查询授权额度</h3>
-            <input
-                type="text"
-                value={spender}
-                onChange={(e) => setSpender(e.target.value)}
-                placeholder="授权者地址"
-            />
-            <button onClick={handleCheckAllowance}>查询授权额度</button>
-            <p>授权额度：{allowance !== "加载中..." ? `${allowance} MTK` : "加载中..."}</p>
-
-            <h3>接收空投</h3>
-            <button onClick={handleReceiveAirdrop}>接收空投</button>
+            <h3 className="section-title">查询授权额度</h3>
+            <Space direction="vertical" style={{ width: '100%' }}>
+                <Input
+                    value={spender}
+                    onChange={(e) => setSpender(e)}
+                    placeholder="授权者地址"
+                />
+                <Button onClick={handleCheckAllowance} block>查询授权额度</Button>
+                <p>授权额度：{allowance !== "加载中..." ? `${allowance} MTK` : "加载中..."}</p>
+            </Space>
         </div>
     );
 };
