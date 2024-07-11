@@ -57,7 +57,7 @@ const MyToken = () => {
         };
 
         init();
-    }, []);
+    }, [web3]);
 
     const handleTransfer = async () => {
         try {
